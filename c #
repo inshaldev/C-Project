@@ -1,0 +1,440 @@
+
+using System;
+using System.Collections.Generic;
+
+public class Item
+{
+    public string Name { get; set; }
+    public double BasePrice { get; set; }
+    public double ExtraCost { get; set; }
+    public int Quantity { get; set; }
+    public bool IsWrapped { get; set; }
+}
+
+public class Program
+{
+    private static Dictionary<string, int> stocks = new Dictionary<string, int>
+    {
+        {"Mens-Cotton", 10},
+        {"Mens-Silk", 10},
+        {"Mens-Wool", 10},
+        {"Womens-Cotton", 10},
+        {"Womens-Silk", 10},
+        {"Womens-Wool", 10},
+        {"Childrens-Cotton", 10},
+        {"Childrens-Silk", 10},
+        {"Childrens-Wool", 10},
+        {"Hats", 20},
+        {"Scarves", 20}
+    };
+
+    private static Dictionary<string, Item> cart = new Dictionary<string, Item>();
+    private static bool promoApplied = false;
+    private static double totalSales = 0;
+    private static Dictionary<string, int> salesCount = new Dictionary<string, int>();
+
+    public static void Main()
+    {
+        while (true)
+        {
+            Console.WriteLine("\n=== Shopping Cart App ===");
+            Console.WriteLine("1. Add Item");
+            Console.WriteLine("2. Update Quantity");
+            Console.WriteLine("3. Remove Item");
+            Console.WriteLine("4. View Cart");
+            Console.WriteLine("5. Apply Promo Code");
+            Console.WriteLine("6. Checkout");
+            Console.WriteLine("7. Sales Report");
+            Console.WriteLine("8. Clear Cart");
+            Console.WriteLine("9. Exit");
+            Console.Write("Choose an option: ");
+            string choice = Console.ReadLine();
+
+            switch (choice)
+            {
+                case "1":
+                    AddItem();
+                    break;
+                case "2":
+                    UpdateQuantity();
+                    break;
+                case "3":
+                    RemoveItem();
+                    break;
+                case "4":
+                    ViewCart();
+                    break;
+                case "5":
+                    ApplyPromo();
+                    break;
+                case "6":
+                    Checkout();
+                    break;
+                case "7":
+                    SalesReport();
+                    break;
+                case "8":
+                    ClearCart();
+                    break;
+                case "9":
+                    Console.WriteLine("Goodbye!");
+                    return;
+                default:
+                    Console.WriteLine("Invalid option. Try again.");
+                    break;
+            }
+        }
+    }
+
+    private static void AddItem()
+    {
+        Console.WriteLine("\nCategories:");
+        Console.WriteLine("1. Men's Dress");
+        Console.WriteLine("2. Women's Dress");
+        Console.WriteLine("3. Children's Dress");
+        Console.WriteLine("4. Hats");
+        Console.WriteLine("5. Scarves");
+        Console.Write("Choose category: ");
+        string cat = Console.ReadLine();
+
+        string key = "";
+        double baseP = 0;
+        double extra = 0;
+        string displayName = "";
+
+        if (cat == "4")
+        {
+            key = "Hats";
+            baseP = 500;
+            extra = 0;
+            displayName = "Hat";
+        }
+        else if (cat == "5")
+        {
+            key = "Scarves";
+            baseP = 700;
+            extra = 0;
+            displayName = "Scarf";
+        }
+        else if (cat == "1" || cat == "2" || cat == "3")
+        {
+            string catName = cat == "1" ? "Mens" : cat == "2" ? "Womens" : "Childrens";
+            baseP = cat == "1" ? 4000 : cat == "2" ? 6000 : 3000;
+            key = catName + "-"; // Will append fabric
+
+            Console.WriteLine("Fabric:");
+            Console.WriteLine("1. Cotton (no extra)");
+            Console.WriteLine("2. Silk (+Rs. 500)");
+            Console.WriteLine("3. Wool (+Rs. 700)");
+            Console.Write("Choose fabric: ");
+            string f = Console.ReadLine();
+
+            string fabricName = f == "1" ? "Cotton" : f == "2" ? "Silk" : "Wool";
+            extra = f == "1" ? 0 : f == "2" ? 500 : 700;
+            key += fabricName;
+            displayName = $"{catName} {fabricName} Dress";
+        }
+        else
+        {
+            Console.WriteLine("Invalid category.");
+            return;
+        }
+
+        if (!stocks.ContainsKey(key))
+        {
+            Console.WriteLine("Invalid item.");
+            return;
+        }
+
+        Console.Write("Enter quantity: ");
+        if (!int.TryParse(Console.ReadLine(), out int addQty) || addQty <= 0)
+        {
+            Console.WriteLine("Invalid quantity.");
+            return;
+        }
+
+        int currentQty = cart.ContainsKey(key) ? cart[key].Quantity : 0;
+        int proposedQty = currentQty + addQty;
+
+        if (proposedQty > stocks[key])
+        {
+            Console.WriteLine($"Not enough stock. Available: {stocks[key] - currentQty}");
+            return;
+        }
+
+        Item item;
+        if (cart.ContainsKey(key))
+        {
+            item = cart[key];
+            item.Quantity = proposedQty;
+        }
+        else
+        {
+            item = new Item
+            {
+                Name = displayName,
+                BasePrice = baseP,
+                ExtraCost = extra,
+                Quantity = addQty
+            };
+            cart[key] = item;
+        }
+
+        Console.Write("Add gift wrapping (Rs. 200 per item)? (y/n): ");
+        item.IsWrapped = Console.ReadLine().ToLower() == "y";
+
+        Console.WriteLine("Item added/updated!");
+    }
+
+    private static void UpdateQuantity()
+    {
+        if (cart.Count == 0)
+        {
+            Console.WriteLine("Cart is empty.");
+            return;
+        }
+
+        Console.WriteLine("\nCurrent cart items:");
+        foreach (var kvp in cart)
+        {
+            Console.WriteLine($"{kvp.Key}: Qty {kvp.Value.Quantity}");
+        }
+
+        Console.Write("Enter item key to update: ");
+        string key = Console.ReadLine();
+
+        if (!cart.ContainsKey(key))
+        {
+            Console.WriteLine("Item not found.");
+            return;
+        }
+
+        Console.Write("Enter new quantity: ");
+        if (!int.TryParse(Console.ReadLine(), out int newQty) || newQty < 0)
+        {
+            Console.WriteLine("Invalid quantity.");
+            return;
+        }
+
+        if (newQty > stocks[key])
+        {
+            Console.WriteLine($"Not enough stock. Available: {stocks[key]}");
+            return;
+        }
+
+        cart[key].Quantity = newQty;
+        Console.WriteLine("Quantity updated!");
+    }
+
+    private static void RemoveItem()
+    {
+        if (cart.Count == 0)
+        {
+            Console.WriteLine("Cart is empty.");
+            return;
+        }
+
+        Console.WriteLine("\nCurrent cart items:");
+        foreach (var kvp in cart)
+        {
+            Console.WriteLine($"{kvp.Key}: Qty {kvp.Value.Quantity}");
+        }
+
+        Console.Write("Enter item key to remove: ");
+        string key = Console.ReadLine();
+
+        if (cart.ContainsKey(key))
+        {
+            cart.Remove(key);
+            Console.WriteLine("Item removed!");
+        }
+        else
+        {
+            Console.WriteLine("Item not found.");
+        }
+    }
+
+    private static void ViewCart()
+    {
+        if (cart.Count == 0)
+        {
+            Console.WriteLine("Cart is empty.");
+            return;
+        }
+
+        double subtotal = 0;
+        Console.WriteLine("\n=== Cart ===");
+        foreach (var kvp in cart)
+        {
+            double unitPrice = kvp.Value.BasePrice + kvp.Value.ExtraCost;
+            double itemSub = unitPrice * kvp.Value.Quantity;
+            bool bulkDiscount = kvp.Value.Quantity >= 3;
+            if (bulkDiscount)
+            {
+                itemSub *= 0.9;
+            }
+            double wrapCost = kvp.Value.IsWrapped ? 200 * kvp.Value.Quantity : 0;
+            double itemTotal = itemSub + wrapCost;
+            subtotal += itemTotal;
+
+            Console.WriteLine($"{kvp.Value.Name}:");
+            Console.WriteLine($"  Quantity: {kvp.Value.Quantity}");
+            Console.WriteLine($"  Unit Price: Rs. {unitPrice}");
+            if (bulkDiscount)
+            {
+                Console.WriteLine("  Bulk Discount: 10%");
+            }
+            if (kvp.Value.IsWrapped)
+            {
+                Console.WriteLine("  Gift Wrap: Rs. 200 per item");
+            }
+            Console.WriteLine($"  Item Total: Rs. {itemTotal}");
+        }
+        Console.WriteLine($"Subtotal (with bulk & wrap): Rs. {subtotal}");
+        if (promoApplied)
+        {
+            Console.WriteLine("Promo code applied - 10% off on checkout.");
+        }
+        Console.WriteLine("Seasonal 5% off if total > Rs. 20,000 on checkout.");
+    }
+
+    private static void ApplyPromo()
+    {
+        if (promoApplied)
+        {
+            Console.WriteLine("Promo already applied.");
+            return;
+        }
+
+        Console.Write("Enter promo code: ");
+        string code = Console.ReadLine();
+        if (code == "SALE10")
+        {
+            promoApplied = true;
+            Console.WriteLine("Promo applied! 10% off on total.");
+        }
+        else
+        {
+            Console.WriteLine("Invalid promo code.");
+        }
+    }
+
+    private static void Checkout()
+    {
+        if (cart.Count == 0)
+        {
+            Console.WriteLine("Cart is empty.");
+            return;
+        }
+
+        double subtotal = 0;
+        Console.WriteLine("\n=== Checkout Summary ===");
+        foreach (var kvp in cart)
+        {
+            double unitPrice = kvp.Value.BasePrice + kvp.Value.ExtraCost;
+            double itemSub = unitPrice * kvp.Value.Quantity;
+            bool bulkDiscount = kvp.Value.Quantity >= 3;
+            if (bulkDiscount)
+            {
+                itemSub *= 0.9;
+            }
+            double wrapCost = kvp.Value.IsWrapped ? 200 * kvp.Value.Quantity : 0;
+            double itemTotal = itemSub + wrapCost;
+            subtotal += itemTotal;
+
+            Console.WriteLine($"{kvp.Value.Name}:");
+            Console.WriteLine($"  Quantity: {kvp.Value.Quantity}");
+            Console.WriteLine($"  Unit Price: Rs. {unitPrice}");
+            if (bulkDiscount)
+            {
+                Console.WriteLine("  Bulk Discount: 10%");
+            }
+            if (kvp.Value.IsWrapped)
+            {
+                Console.WriteLine("  Gift Wrap: Rs. 200 per item");
+            }
+            Console.WriteLine($"  Item Total: Rs. {itemTotal}");
+        }
+
+        double grandTotal = subtotal;
+        double seasonalDiscount = 0;
+        if (grandTotal > 20000)
+        {
+            seasonalDiscount = grandTotal * 0.05;
+            grandTotal -= seasonalDiscount;
+            Console.WriteLine($"Seasonal Discount (5%): Rs. {seasonalDiscount}");
+        }
+
+        double finalAmount = grandTotal;
+        double promoDiscount = 0;
+        if (promoApplied)
+        {
+            promoDiscount = grandTotal * 0.1;
+            finalAmount -= promoDiscount;
+            Console.WriteLine($"Promo Discount (10%): Rs. {promoDiscount}");
+        }
+
+        Console.WriteLine($"Final Amount Due: Rs. {finalAmount}");
+
+        Console.Write("Confirm checkout? (y/n): ");
+        string confirm = Console.ReadLine();
+        if (confirm.ToLower() == "y")
+        {
+            // Reduce stock
+            foreach (var kvp in cart)
+            {
+                stocks[kvp.Key] -= kvp.Value.Quantity;
+            }
+
+            // Update sales
+            totalSales += finalAmount;
+            foreach (var kvp in cart)
+            {
+                if (!salesCount.ContainsKey(kvp.Key))
+                {
+                    salesCount[kvp.Key] = 0;
+                }
+                salesCount[kvp.Key] += kvp.Value.Quantity;
+            }
+
+            cart.Clear();
+            promoApplied = false;
+            Console.WriteLine("\nThank you for your purchase!");
+        }
+        else
+        {
+            Console.WriteLine("Checkout cancelled.");
+        }
+    }
+
+    private static void SalesReport()
+    {
+        if (totalSales == 0)
+        {
+            Console.WriteLine("No sales yet.");
+            return;
+        }
+
+        Console.WriteLine("\n=== Sales Report ===");
+        Console.WriteLine($"Total Sales: Rs. {totalSales}");
+
+        string mostFrequent = "";
+        int maxCount = 0;
+        foreach (var pair in salesCount)
+        {
+            if (pair.Value > maxCount)
+            {
+                maxCount = pair.Value;
+                mostFrequent = pair.Key;
+            }
+        }
+
+        Console.WriteLine($"Most Frequently Purchased Item: {mostFrequent} ({maxCount} units)");
+    }
+
+    private static void ClearCart()
+    {
+        cart.Clear();
+        Console.WriteLine("Cart cleared!");
+    }
+}
